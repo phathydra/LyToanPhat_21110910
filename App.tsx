@@ -82,11 +82,11 @@ export default class App extends Component{
     }
     else{
       this.setState({
-        startTime: new Date(),
         timeElapsed: 0,
         lapTimeElapsed: 0,
         laps: [],
-        reset: false
+        reset: false,
+        isFirstRun: true
       })
     }
   }
