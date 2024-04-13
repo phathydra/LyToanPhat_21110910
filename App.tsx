@@ -1,119 +1,196 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {Component} from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
+  TouchableHighlight
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import formatTime from 'minutes-seconds-milliseconds';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+export default class App extends Component{
+  constructor(props){
+    super(props);
+    this.state = {
+      timeElapsed: null,
+      running: false,
+      startTime: null,
+      laps: [],
+      isFirstRun: true,
+      lapTime: null,
+      lapTimeElapsed: null,
+      reset: false
+    };
+    this.handleStartPress = this.handleStartPress.bind(this);
+    this.startStopButton = this.startStopButton.bind(this);
+    this.handleLapPress = this.handleLapPress.bind(this);
+  }
+  
+  laps(){
+    var reverseLaps = [...this.state.laps]
+    var length = reverseLaps.length;
+    var curTime = this.state.lapTimeElapsed;
+    return reverseLaps.reverse().map(function(time, index){
+      var reverseIndex = length - index - 1;
+      var last = false;
+      if(reverseIndex === length - 1){
+        last = true;
+      }
+      return <View key={reverseIndex} style={styles.lap}>
+        <Text style={styles.lapText}>
+          Lap #{reverseIndex + 1}
+        </Text>
+        <Text style={styles.lapText}>
+          {formatTime(time)}
+        </Text>
+      </View>
+    });
+  }
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
+  startStopButton(){
+    var style = this.state.running ? styles.stopButton : styles.startButton;
+
+    return <TouchableHighlight underlayColor="gray"
+                              onPress={this.handleStartPress}
+                              style={[styles.button, style]}>
+      <Text>
+        {this.state.running ? 'Stop' : 'Start'}
       </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
+    </TouchableHighlight>
+  }
+
+  lapButton(){
+    return <TouchableHighlight style={styles.button}
+                                underlayColor="gray"
+                                onPress={this.handleLapPress}>
+      <Text>
+        {this.state.reset ? 'Reset' : 'Lap'}
       </Text>
-    </View>
-  );
-}
+    </TouchableHighlight>
+  }
 
-//
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  handleLapPress(){
+    var lap = this.state.lapTimeElapsed;
+    if(!this.state.reset){
+      this.setState({
+        lapTime: new Date(),
+        laps: this.state.laps.concat([lap])
+      });
+    }
+    else{
+      this.setState({
+        startTime: new Date(),
+        timeElapsed: 0,
+        laps: [],
+        reset: false
+      })
+    }
+  }
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  handleStartPress(){
+    if(this.state.running){
+      clearInterval(this.interval);
+      this.setState({running: false});
+      this.setState({reset: true});
+      return
+    }
+    if(this.state.isFirstRun){
+      this.setState({startTime: new Date()});
+      this.setState({isFirstRun: false});
+      this.setState({lapTime: new Date()});
+    }
 
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    this.interval = setInterval(() => {
+      this.setState({
+        timeElapsed: new Date() - this.state.startTime,
+        lapTimeElapsed: new Date() - this.state.lapTime,
+        running: true,
+        reset: false
+      });
+    }, 30);
+  }
+  
+  render(){
+    return <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.timerWrapper}>
+          <Text style={styles.timer}>
+            {formatTime(this.state.timeElapsed)}
+          </Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+        <View style={styles.buttonWrapper}>
+          {this.lapButton()}
+          {this.startStopButton()}
+        </View>
+      </View>
+      <View style={styles.footer}>
+        {this.laps()}
+      </View>
+    </View>
+  }
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container:{
+    flex: 1,
+    backgroundColor: 'black'
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  header:{
+    flex: 1
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  footer:{
+    flex: 1
   },
-  highlight: {
-    fontWeight: '700',
+  timerWrapper:{
+    flex: 5,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
+  buttonWrapper:{
+    flex: 3,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  lap:{
+    justifyContent: 'space-around',
+    flexDirection:'row',
+    borderColor: 'lightgray',
+    borderWidth:2,
+    padding: 10,
+    marginTop: 10
+  },
+  button:{
+    borderWidth: 1,
+    height: 100,
+    width: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'lightgray'
+  },
+  timer:{
+    fontSize: 60,
+    color:'white'
+  },
+  lapText:{
+    fontSize: 30,
+    color: 'white'
+  },
+  startButton:{
+    backgroundColor: 'green'
+  },
+  stopButton:{
+    backgroundColor: 'red'
+  },
+  longestLapTest:{
+    fontSize: 30,
+    color: 'red'
+  },
+  shortestLapText:{
+    fontSize: 30,
+    color: 'green'
+  }
 });
 
 export default App;
