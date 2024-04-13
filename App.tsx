@@ -41,7 +41,7 @@ export default class App extends Component{
           Lap #{reverseIndex + 1}
         </Text>
         <Text style={styles.lapText}>
-          {formatTime(time)}
+          {last ? formatTime(curTime) : formatTime(time)}
         </Text>
       </View>
     });
@@ -70,17 +70,21 @@ export default class App extends Component{
   }
 
   handleLapPress(){
+    var length = this.state.laps.length;
     var lap = this.state.lapTimeElapsed;
+    console.log(this.state.laps);
     if(!this.state.reset){
+      this.setState({laps: this.state.laps.splice(length - 1, 1, lap)})
       this.setState({
         lapTime: new Date(),
-        laps: this.state.laps.concat([lap])
+        laps: this.state.laps.concat([0])
       });
     }
     else{
       this.setState({
         startTime: new Date(),
         timeElapsed: 0,
+        lapTimeElapsed: 0,
         laps: [],
         reset: false
       })
@@ -97,8 +101,9 @@ export default class App extends Component{
     if(this.state.isFirstRun){
       this.setState({startTime: new Date()});
       this.setState({isFirstRun: false});
-      this.setState({lapTime: new Date()});
     }
+    this.setState({lapTime: new Date()});
+    this.setState({laps: this.state.laps.concat([0])});
 
     this.interval = setInterval(() => {
       this.setState({
